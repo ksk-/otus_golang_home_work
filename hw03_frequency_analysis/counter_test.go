@@ -8,7 +8,7 @@ import (
 
 func TestInsert(t *testing.T) {
 	value := "value"
-	c := NewCounter[string]()
+	c := NewCounter()
 	for i := 1; i < 10; i++ {
 		c.Insert(value)
 		require.Equal(t, i, c.data[value])
@@ -18,7 +18,7 @@ func TestInsert(t *testing.T) {
 func TestTop(t *testing.T) {
 	people := []string{"Alice", "Bob", "Dave", "Alice", "Dave", "Bob", "Carlos", "Bob"}
 
-	c := NewCounter[string]()
+	c := NewCounter()
 	for _, person := range people {
 		c.Insert(person)
 	}

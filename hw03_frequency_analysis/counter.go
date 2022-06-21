@@ -2,15 +2,13 @@ package hw03frequencyanalysis
 
 import (
 	"sort"
-
-	"golang.org/x/exp/constraints"
 )
 
-type Counter[T constraints.Ordered] struct {
-	data map[T]int
+type Counter struct {
+	data map[string]int
 }
 
-func (c *Counter[T]) Insert(value T) {
+func (c *Counter) Insert(value string) {
 	if count, ok := c.data[value]; ok {
 		c.data[value] = count + 1
 	} else {
@@ -18,7 +16,7 @@ func (c *Counter[T]) Insert(value T) {
 	}
 }
 
-func (c *Counter[T]) Top(n int) []T {
+func (c *Counter) Top(n int) []string {
 	s := c.toSlice()
 	sort.Slice(s, func(i, j int) bool {
 		return s[i].value >= s[j].value
@@ -28,7 +26,7 @@ func (c *Counter[T]) Top(n int) []T {
 	})
 
 	count := min(n, len(s))
-	res := make([]T, 0, count)
+	res := make([]string, 0, count)
 	for i := 0; i < count; i++ {
 		res = append(res, s[i].value)
 	}
@@ -36,25 +34,25 @@ func (c *Counter[T]) Top(n int) []T {
 	return res
 }
 
-func NewCounter[T constraints.Ordered]() *Counter[T] {
-	return &Counter[T]{data: make(map[T]int)}
+func NewCounter() *Counter {
+	return &Counter{data: make(map[string]int)}
 }
 
-type item[T constraints.Ordered] struct {
-	value T
+type item struct {
+	value string
 	count int
 }
 
-func (c *Counter[T]) toSlice() []item[T] {
-	s := make([]item[T], 0, len(c.data))
+func (c *Counter) toSlice() []item {
+	s := make([]item, 0, len(c.data))
 	for k, v := range c.data {
-		s = append(s, item[T]{value: k, count: v})
+		s = append(s, item{value: k, count: v})
 	}
 
 	return s
 }
 
-func min[T constraints.Ordered](x T, y T) T {
+func min(x int, y int) int {
 	if x < y {
 		return x
 	}
