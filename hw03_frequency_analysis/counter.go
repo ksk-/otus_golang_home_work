@@ -9,20 +9,17 @@ type Counter struct {
 }
 
 func (c *Counter) Insert(value string) {
-	if count, ok := c.data[value]; ok {
-		c.data[value] = count + 1
-	} else {
-		c.data[value] = 1
-	}
+	c.data[value]++
 }
 
 func (c *Counter) Top(n int) []string {
 	s := c.toSlice()
 	sort.Slice(s, func(i, j int) bool {
-		return s[i].value >= s[j].value
-	})
-	sort.SliceStable(s, func(i, j int) bool {
-		return s[i].count >= s[j].count
+		if s[i].count == s[j].count {
+			return s[i].value < s[j].value
+		}
+
+		return s[i].count > s[j].count
 	})
 
 	count := min(n, len(s))
