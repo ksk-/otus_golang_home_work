@@ -1,6 +1,23 @@
 package hw03frequencyanalysis
 
-func Top10(_ string) []string {
-	// Place your code here.
-	return nil
+import (
+	"regexp"
+	"strings"
+	"unicode"
+)
+
+var re = regexp.MustCompile(`\S+`)
+
+func Top10(text string) []string {
+	c := NewCounter()
+	for _, word := range re.FindAllString(text, -1) {
+		if word != "-" {
+			word = strings.TrimLeftFunc(word, unicode.IsPunct)
+			word = strings.TrimRightFunc(word, unicode.IsPunct)
+			word = strings.ToLower(word)
+			c.Insert(word)
+		}
+	}
+
+	return c.Top(10)
 }
