@@ -23,24 +23,26 @@ func Run(tasks []Task, n, m int) error {
 	wg.Add(n)
 
 	for i := 0; i < n; i++ {
-		go func(availableErrors *int32) {
+		go func() {
 			defer wg.Done()
 
-			for atomic.LoadInt32(availableErrors) > 0 {
+			for atomic.LoadInt32(&availableErrors) > 0 {
 				task, ok := <-taskCh
 				if !ok {
 					break
 				}
 
 				if err := task(); err != nil {
-					atomic.AddInt32(availableErrors, -1)
+					atomic.AddInt32(&availableErrors, -1)
 				}
 			}
-		}(&availableErrors)
+		}()
 	}
 
 	for _, task := range tasks {
-		taskCh <- task
+		if atomic.LoadInt32(&availableErrors) > 0 {
+			taskCh <- task
+		}
 	}
 	close(taskCh)
 
