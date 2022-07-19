@@ -17,7 +17,7 @@ func Run(tasks []Task, n, m int) error {
 
 	availableErrors := int32(m)
 
-	taskCh := make(chan Task, len(tasks))
+	taskCh := make(chan Task)
 
 	var wg sync.WaitGroup
 	wg.Add(n)
@@ -26,12 +26,7 @@ func Run(tasks []Task, n, m int) error {
 		go func() {
 			defer wg.Done()
 
-			for atomic.LoadInt32(&availableErrors) > 0 {
-				task, ok := <-taskCh
-				if !ok {
-					break
-				}
-
+			for task := range taskCh {
 				if err := task(); err != nil {
 					atomic.AddInt32(&availableErrors, -1)
 				}
