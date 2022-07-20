@@ -50,13 +50,58 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("purge logic", func(t *testing.T) {
-		// Write me
+		t.Run("by filling cache", func(t *testing.T) {
+			c := NewCache(3)
+			c.Set("one", 1)   // ["one":1]
+			c.Set("two", 2)   // ["two":2, "one":1]
+			c.Set("three", 3) // ["three":3, "two":2, "one":1]
+			c.Set("four", 4)  // ["four":4, "three":3, "two":2]
+			c.Set("five", 5)  // ["five":5, "four":4, "three":3]
+
+			for _, key := range []Key{"one", "two"} {
+				value, ok := c.Get(key)
+				require.False(t, ok)
+				require.Nil(t, value)
+			}
+
+			value, ok := c.Get("three")
+			require.True(t, ok)
+			require.Equal(t, 3, value)
+
+			value, ok = c.Get("four")
+			require.True(t, ok)
+			require.Equal(t, 4, value)
+
+			value, ok = c.Get("five")
+			require.True(t, ok)
+			require.Equal(t, 5, value)
+		})
+
+		t.Run("for long unused items", func(t *testing.T) {
+			c := NewCache(3)
+			c.Set("one", 1)   // ["one":1]
+			c.Set("two", 2)   // ["two":2, "one":1]
+			c.Set("three", 3) // ["three":3, "two":2, "one":1]
+
+			c.Set("one", -1) // ["one":-1, "three":3, "two":2]
+			c.Set("four", 4) // ["four":4, "one":-1, "three":3]
+
+			value, ok := c.Get("two")
+			require.False(t, ok)
+			require.Nil(t, value)
+
+			c.Get("one")   // ["one":-1, "four":4, "three":3]
+			c.Set("*", 0)  // ["*":0, "one":-1, "four":4]
+			c.Set("**", 0) // ["**":0, "*":0, "one":-1]
+
+			value, ok = c.Get("one") // ["one":-1, "**":0, "*":0]
+			require.True(t, ok)
+			require.Equal(t, -1, value)
+		})
 	})
 }
 
 func TestCacheMultithreading(t *testing.T) {
-	t.Skip() // Remove me if task with asterisk completed.
-
 	c := NewCache(10)
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
