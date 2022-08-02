@@ -128,23 +128,39 @@ func TestRun(t *testing.T) {
 		tasks := make([]Task, 0, tasksCount)
 
 		var runTasksCount int32
-
 		workersCount := tasksCount
 		maxErrorsCount := 1
 
+		waitCh := make(chan struct{})
 		for i := 0; i < tasksCount; i++ {
 			tasks = append(tasks, func() error {
 				atomic.AddInt32(&runTasksCount, 1)
-
-				require.Eventually(t, func() bool {
-					return atomic.LoadInt32(&runTasksCount) == int32(workersCount)
-				}, time.Second, 10*time.Microsecond)
-
+				<-waitCh
 				return nil
 			})
 		}
 
-		err := Run(tasks, workersCount, maxErrorsCount)
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- Run(tasks, workersCount, maxErrorsCount)
+		}()
+
+		require.Eventually(t, func() bool {
+			return atomic.LoadInt32(&runTasksCount) == int32(workersCount)
+		}, time.Second, time.Millisecond)
+
+		close(waitCh)
+
+		var err error
+		require.Eventually(t, func() bool {
+			select {
+			case err = <-errCh:
+				return true
+			default:
+				return false
+			}
+		}, time.Second, time.Millisecond)
+
 		require.NoError(t, err)
 	})
 }
