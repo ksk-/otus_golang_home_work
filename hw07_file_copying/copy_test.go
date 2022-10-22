@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -46,13 +47,13 @@ func (s *CopyTestSuite) TearDownTest() {
 }
 
 func (s *CopyTestSuite) TestCopy() {
-	s.T().Run("whole file", func(t *testing.T) {
+	s.Run("whole file", func() {
 		err := Copy(inputFile, s.outputFile, 0, 0)
 		s.Require().NoError(err)
 		s.Require().Equal(readFile(inputFile), s.readOutputFile())
 	})
 
-	s.T().Run("some parts", func(t *testing.T) {
+	s.Run("some parts", func() {
 		tests := []struct {
 			offset   int64
 			limit    int64
@@ -65,7 +66,7 @@ func (s *CopyTestSuite) TestCopy() {
 		}
 
 		for _, test := range tests {
-			t.Run("", func(t *testing.T) {
+			s.Run("", func() {
 				err := Copy(inputFile, s.outputFile, test.offset, test.limit)
 				s.Require().NoError(err)
 				s.Require().Equal(test.expected, s.readOutputFile())
@@ -73,7 +74,7 @@ func (s *CopyTestSuite) TestCopy() {
 		}
 	})
 
-	s.T().Run("offset exceeds file size", func(t *testing.T) {
+	s.Run("offset exceeds file size", func() {
 		err := Copy(inputFile, s.outputFile, 6597, inputFileSize*2)
 		s.Require().NoError(err)
 		s.Require().Equal("Supported by Google\n", s.readOutputFile())
@@ -81,22 +82,22 @@ func (s *CopyTestSuite) TestCopy() {
 }
 
 func (s *CopyTestSuite) TestInvalidInput() {
-	s.T().Run("offset exceeds file size", func(t *testing.T) {
+	s.Run("offset exceeds file size", func() {
 		err := Copy(inputFile, s.outputFile, inputFileSize+1, 0)
 		s.Require().ErrorIs(ErrOffsetExceedsFileSize, err)
 	})
 
-	s.T().Run("unsupported file", func(t *testing.T) {
+	s.Run("unsupported file", func() {
 		err := Copy("/dev/urandom", s.outputFile, 0, 0)
 		s.Require().ErrorIs(ErrUnsupportedFile, err)
 	})
 
-	s.T().Run("not existent file", func(t *testing.T) {
+	s.Run("not existent file", func() {
 		err := Copy("not_existent_file", s.outputFile, 0, 0)
 		s.Require().ErrorContains(err, "no such file or directory")
 	})
 
-	s.T().Run("file without read permissions", func(t *testing.T) {
+	s.Run("file without read permissions", func() {
 		err := Copy(s.createWriteOnlyFile("write_only_file"), s.outputFile, 0, 0)
 		s.Require().ErrorContains(err, "permission denied")
 	})
@@ -107,7 +108,7 @@ func (s *CopyTestSuite) readOutputFile() string {
 }
 
 func (s *CopyTestSuite) createWriteOnlyFile(name string) string {
-	f, err := os.OpenFile(s.testDir+"/"+name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModeAppend)
+	f, err := os.OpenFile(path.Join(s.testDir, name), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModeAppend)
 	if err != nil {
 		log.Fatalf("failed to create file: %v", err)
 	}
