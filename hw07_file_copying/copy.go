@@ -18,11 +18,14 @@ var (
 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
 )
 
-func Copy(fromPath, toPath string, offset, limit int64) error {
+func Copy(fromPath, toPath string, offset, limit int64) (err error) {
 	in, size, err := openInputFileAt(fromPath, offset)
 	if err != nil {
 		return err
 	}
+	defer func(in io.ReadSeekCloser) {
+		err = in.Close()
+	}(in)
 
 	if limit > 0 {
 		size = min(limit, size)
@@ -35,6 +38,9 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	if err != nil {
 		return err
 	}
+	defer func(out *os.File) {
+		err = out.Close()
+	}(out)
 
 	barWriter := bar.NewProxyWriter(out)
 	bufferSize := min(defaultBufferSize, size)
@@ -49,11 +55,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		totalWritten += written
 	}
 
-	if err = in.Close(); err != nil {
-		return err
-	}
-
-	return out.Close()
+	return err
 }
 
 func openInputFileAt(path string, offset int64) (io.ReadSeekCloser, int64, error) {
