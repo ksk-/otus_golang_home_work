@@ -16,7 +16,5 @@ func main() {
 		log.Fatalf("failed to read env dir: %v", err)
 	}
 
-	cmd := os.Args[2]
-	args := os.Args[3:]
-	os.Exit(RunCmd(append([]string{cmd}, args...), env))
+	os.Exit(RunCmd(os.Args[2:], env))
 }
