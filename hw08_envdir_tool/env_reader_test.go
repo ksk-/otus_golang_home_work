@@ -25,7 +25,7 @@ func TestReadDir(t *testing.T) {
 		require.Equal(t, expected, env)
 	})
 
-	t.Run("invalid env names", func(t *testing.T) {
+	t.Run("skip files with invalid names", func(t *testing.T) {
 		dir := makeInvalidEnvDir()
 		env, err := ReadDir(dir)
 		defer func(path string) {
@@ -34,8 +34,8 @@ func TestReadDir(t *testing.T) {
 			}
 		}(dir)
 
-		require.ErrorContains(t, err, "invalid variable name")
-		require.Nil(t, env)
+		require.Empty(t, env)
+		require.NoError(t, err)
 	})
 }
 
