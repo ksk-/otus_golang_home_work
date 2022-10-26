@@ -25,14 +25,14 @@ type EnvValue struct {
 func ReadDir(dir string) (Environment, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read dir: %w", err)
+		return nil, fmt.Errorf("read dir: %w", err)
 	}
 
 	env := make(Environment)
 	for _, entry := range entries {
 		info, err := entry.Info()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get file info: %w", err)
+			return nil, fmt.Errorf("get file info: %w", err)
 		}
 
 		name := entry.Name()
@@ -46,7 +46,7 @@ func ReadDir(dir string) (Environment, error) {
 		} else {
 			v, err := readValue(path.Join(dir, name))
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("read value: %w", err)
 			}
 			env[name] = EnvValue{Value: v, NeedRemove: false}
 		}
@@ -58,7 +58,7 @@ func ReadDir(dir string) (Environment, error) {
 func readValue(name string) (string, error) {
 	f, err := os.Open(name)
 	if err != nil {
-		return "", fmt.Errorf("failed to open file: %w", err)
+		return "", fmt.Errorf("open file: %w", err)
 	}
 	defer func(f *os.File) {
 		if err := f.Close(); err != nil {
@@ -69,7 +69,7 @@ func readValue(name string) (string, error) {
 	r := bufio.NewReader(f)
 	v, err := r.ReadBytes('\n')
 	if err != nil && !errors.Is(err, io.EOF) {
-		return "", fmt.Errorf("failed to read file: %w", err)
+		return "", fmt.Errorf("read file: %w", err)
 	}
 	v = bytes.ReplaceAll(v, []byte{0x00}, []byte{'\n'})
 

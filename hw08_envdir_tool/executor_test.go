@@ -175,14 +175,14 @@ func (p *pipe) write(text string) {
 func newPipe() *pipe {
 	r, w, err := os.Pipe()
 	if err != nil {
-		log.Fatalf("failed to created pip: %v", err)
+		log.Fatalf("failed to create pipe: %v", err)
 	}
 	return &pipe{r, w}
 }
 
 func setenv(key, value string) {
 	if err := os.Setenv(key, value); err != nil {
-		log.Fatalf("failef to setenv: %v", err)
+		log.Fatalf("failed to setenv: %v", err)
 	}
 }
 
