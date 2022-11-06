@@ -118,7 +118,7 @@ func TestValidate(t *testing.T) {
 	}
 
 	t.Run("no structs", func(t *testing.T) {
-		for _, v := range []any{1, -3.14, "text", true, func() {}} {
+		for _, v := range []interface{}{1, -3.14, "text", true, func() {}} {
 			require.ErrorIs(t, Validate(v), ErrNoStruct)
 		}
 	})
