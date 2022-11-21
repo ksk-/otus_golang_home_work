@@ -13,24 +13,6 @@ import (
 	"time"
 )
 
-func isInteger(s string) bool {
-	_, err := strconv.Atoi(s)
-	return err == nil
-}
-
-func parseAddress(args []string) (string, error) {
-	if len(args) < 2 {
-		return "", errors.New("should set at 2 positional args")
-	}
-
-	host, port := args[len(args)-2], args[len(args)-1]
-	if !isInteger(port) {
-		return "", errors.New("port should be integer value")
-	}
-
-	return net.JoinHostPort(host, port), nil
-}
-
 func main() {
 	log.SetOutput(os.Stderr)
 
@@ -46,11 +28,6 @@ func main() {
 	if err = client.Connect(); err != nil {
 		log.Fatalf("failed to connect to server: %v", err)
 	}
-	defer func() {
-		if err = client.Close(); err != nil {
-			log.Printf("failed to close client: %v", err)
-		}
-	}()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 
@@ -64,6 +41,28 @@ func main() {
 	}()
 
 	<-ctx.Done()
+
+	if err = client.Close(); err != nil {
+		log.Printf("failed to close client: %v", err)
+	}
+}
+
+func parseAddress(args []string) (string, error) {
+	if len(args) < 2 {
+		return "", errors.New("should set at 2 positional args")
+	}
+
+	host, port := args[len(args)-2], args[len(args)-1]
+	if !isInteger(port) {
+		return "", errors.New("port should be integer value")
+	}
+
+	return net.JoinHostPort(host, port), nil
+}
+
+func isInteger(s string) bool {
+	_, err := strconv.Atoi(s)
+	return err == nil
 }
 
 func runSender(client TelnetClient) {
