@@ -8,7 +8,7 @@ build:
 	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
 
 run: build
-	$(BIN) -config ./configs/config.toml
+	$(BIN) -config ./configs/calendar.yaml
 
 build-img:
 	docker build \
@@ -23,12 +23,18 @@ version: build
 	$(BIN) version
 
 test:
-	go test -race ./internal/... ./pkg/...
+	go test -race ./internal/...
 
 install-lint-deps:
-	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.41.1
+	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.50.1
 
 lint: install-lint-deps
 	golangci-lint run ./...
 
-.PHONY: build run build-img run-img version test lint
+install-migrate-deps:
+	go install github.com/pressly/goose/v3/cmd/goose@latest
+
+migrate: install-lint-deps
+	goose -dir ./migrations up
+
+.PHONY: build run build-img run-img version test lint migrate
