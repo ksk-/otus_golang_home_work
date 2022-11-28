@@ -14,7 +14,7 @@ import (
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/app"
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/config"
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/logger"
-	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/server/http"
+	internalhttp "github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/server/http"
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/storage"
 )
 
@@ -78,6 +78,7 @@ func main() {
 
 		if err := server.Stop(ctx); err != nil {
 			l.Error("failed to stop http server: " + err.Error())
+			os.Exit(1)
 		}
 	}()
 

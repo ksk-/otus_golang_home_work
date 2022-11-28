@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
@@ -35,13 +34,12 @@ func NewServer(logger *logger.Logger, app *app.App, addr string) *Server {
 	}
 }
 
-func (s *Server) Start(ctx context.Context) error {
+func (s *Server) Start(_ context.Context) error {
 	if err := s.srv.ListenAndServe(); err != nil {
 		if !errors.Is(err, http.ErrServerClosed) {
 			return err
 		}
 	}
-	<-ctx.Done()
 	return nil
 }
 
@@ -50,7 +48,7 @@ func (s *Server) Stop(ctx context.Context) error {
 }
 
 func hello(w http.ResponseWriter, _ *http.Request) {
-	if _, err := io.WriteString(w, "Hello World!"); err != nil {
+	if _, err := w.Write([]byte("Hello World!")); err != nil {
 		logger.Global.Error(fmt.Sprintf("failed to write response: %v", err))
 	}
 }
