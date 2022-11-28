@@ -2,30 +2,53 @@ package internalhttp
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/app"
+	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/logger"
 )
 
-type Server struct { // TODO
+type Server struct {
+	logger *logger.Logger
+	app    *app.App
+	srv    *http.Server
 }
 
-type Logger interface { // TODO
+func NewServer(logger *logger.Logger, app *app.App, addr string) *Server {
+	mux := http.NewServeMux()
+	mux.Handle("/hello", http.HandlerFunc(hello))
+
+	srv := &http.Server{
+		Addr:        addr,
+		ReadTimeout: 5 * time.Second,
+		Handler:     loggingMiddleware(mux),
+	}
+
+	return &Server{
+		logger: logger,
+		app:    app,
+		srv:    srv,
+	}
 }
 
-type Application interface { // TODO
-}
-
-func NewServer(logger Logger, app Application) *Server {
-	return &Server{}
-}
-
-func (s *Server) Start(ctx context.Context) error {
-	// TODO
-	<-ctx.Done()
+func (s *Server) Start(_ context.Context) error {
+	if err := s.srv.ListenAndServe(); err != nil {
+		if !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+	}
 	return nil
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	// TODO
-	return nil
+	return s.srv.Shutdown(ctx)
 }
 
-// TODO
+func hello(w http.ResponseWriter, _ *http.Request) {
+	if _, err := w.Write([]byte("Hello World!")); err != nil {
+		logger.Global.Error(fmt.Sprintf("failed to write response: %v", err))
+	}
+}

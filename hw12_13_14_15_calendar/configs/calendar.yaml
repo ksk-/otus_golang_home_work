@@ -1,0 +1,16 @@
+logger:
+  level: debug
+  pretty: true
+
+storage:
+  type: sql
+  db:
+    host: localhost
+    port: 5432
+    database: dbname
+    user: postgres
+    password: password123
+
+http:
+  host: 0.0.0.0
+  port: 8080
