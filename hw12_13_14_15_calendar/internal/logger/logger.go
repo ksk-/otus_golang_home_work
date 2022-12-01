@@ -10,10 +10,30 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var Global = &Logger{logger: log.Logger}
+var global = &Logger{logger: log.Logger}
 
 type Logger struct {
 	logger zerolog.Logger
+}
+
+func Global() *Logger {
+	return global
+}
+
+func Debug(msg string) {
+	global.Debug(msg)
+}
+
+func Info(msg string) {
+	global.Info(msg)
+}
+
+func Warn(msg string) {
+	global.Warn(msg)
+}
+
+func Error(msg string) {
+	global.Error(msg)
 }
 
 func New(cfg *config.Logger) *Logger {
@@ -53,4 +73,9 @@ func (l *Logger) Warn(msg string) {
 
 func (l *Logger) Error(msg string) {
 	l.logger.Error().Msg(msg)
+}
+
+func (l *Logger) WithGlobal() *Logger {
+	global = l
+	return global
 }

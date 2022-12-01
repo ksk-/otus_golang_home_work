@@ -54,6 +54,7 @@ type Config struct {
 	} `yaml:"storage"`
 
 	HTTP ServiceAddr `yaml:"http"`
+	GRPC ServiceAddr `yaml:"grpc"`
 }
 
 func NewConfig(path string) (*Config, error) {
@@ -67,6 +68,7 @@ func NewConfig(path string) (*Config, error) {
 	cfg.Logger.Pretty = false
 	cfg.Storage.Type = defaultStorageType
 	cfg.HTTP.Host = defaultHost
+	cfg.GRPC.Host = defaultHost
 
 	if err = yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)

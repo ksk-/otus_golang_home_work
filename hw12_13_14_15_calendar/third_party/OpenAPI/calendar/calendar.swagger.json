@@ -1,0 +1,374 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "calendar/calendar.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "CalendarApi"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/events": {
+      "post": {
+        "summary": "Create a new event",
+        "operationId": "CalendarApi_CreateEventV1",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/calendarCreateEventV1Response"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/calendarCreateEventV1Request"
+            }
+          }
+        ],
+        "tags": [
+          "CalendarApi"
+        ]
+      }
+    },
+    "/api/v1/events/day/{since}": {
+      "get": {
+        "summary": "Get event for the specified date",
+        "operationId": "CalendarApi_GetEventsOfDayV1",
+        "responses": {
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "since",
+            "description": "The begin of requested period",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "CalendarApi"
+        ]
+      }
+    },
+    "/api/v1/events/month/{since}": {
+      "get": {
+        "summary": "Get event for the specified month",
+        "operationId": "CalendarApi_GetEventsOfMonthV1",
+        "responses": {
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "since",
+            "description": "The begin of requested period",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "CalendarApi"
+        ]
+      }
+    },
+    "/api/v1/events/week/{since}": {
+      "get": {
+        "summary": "Get event for the specified week",
+        "operationId": "CalendarApi_GetEventsOfWeekV1",
+        "responses": {
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "since",
+            "description": "The begin of requested period",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "CalendarApi"
+        ]
+      }
+    },
+    "/api/v1/events/{event.id}": {
+      "put": {
+        "summary": "Update event",
+        "operationId": "CalendarApi_UpdateEventV1",
+        "responses": {
+          "204": {
+            "description": "Updated",
+            "schema": {
+              "$ref": "#/definitions/calendarUpdateEventV1Response"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "event.id",
+            "description": "Event ID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "event": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                      "title": "Title"
+                    },
+                    "beginTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "title": "Begin of event"
+                    },
+                    "endTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "title": "End of event"
+                    },
+                    "description": {
+                      "type": "string",
+                      "title": "Description"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "title": "User ID"
+                    },
+                    "notifyIn": {
+                      "type": "string",
+                      "title": "Notify in"
+                    }
+                  },
+                  "title": "Event"
+                }
+              },
+              "title": "Update event request"
+            }
+          }
+        ],
+        "tags": [
+          "CalendarApi"
+        ]
+      }
+    },
+    "/api/v1/events/{eventId}": {
+      "delete": {
+        "summary": "Delete event",
+        "operationId": "CalendarApi_DeleteEventV1",
+        "responses": {
+          "204": {
+            "description": "Deleted",
+            "schema": {
+              "$ref": "#/definitions/calendarUpdateEventV1Response"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "eventId",
+            "description": "Event ID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "CalendarApi"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "calendarCreateEventV1Request": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "title": "Title"
+        },
+        "beginTime": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Begin of event"
+        },
+        "endTime": {
+          "type": "string",
+          "format": "date-time",
+          "title": "End of event"
+        },
+        "description": {
+          "type": "string",
+          "title": "Description"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uuid",
+          "title": "User ID"
+        },
+        "notifyIn": {
+          "type": "string",
+          "title": "Notify in"
+        }
+      },
+      "title": "Create event request"
+    },
+    "calendarCreateEventV1Response": {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Created event ID"
+        }
+      },
+      "title": "Create event response"
+    },
+    "calendarDeleteEventV1Response": {
+      "type": "object",
+      "title": "Delete event response"
+    },
+    "calendarEvent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "title": "Event ID"
+        },
+        "title": {
+          "type": "string",
+          "title": "Title"
+        },
+        "beginTime": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Begin of event"
+        },
+        "endTime": {
+          "type": "string",
+          "format": "date-time",
+          "title": "End of event"
+        },
+        "description": {
+          "type": "string",
+          "title": "Description"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uuid",
+          "title": "User ID"
+        },
+        "notifyIn": {
+          "type": "string",
+          "title": "Notify in"
+        }
+      },
+      "title": "Event"
+    },
+    "calendarGetEventsV1Response": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/calendarEvent"
+          },
+          "title": "Requested events"
+        }
+      },
+      "title": "Get events response"
+    },
+    "calendarUpdateEventV1Response": {
+      "type": "object",
+      "title": "Update event response"
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  }
+}
