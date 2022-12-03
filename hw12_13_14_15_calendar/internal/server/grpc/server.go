@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func NewServer(cfg *config.Config, app *app.App, logger *logger.Logger) *Server {
+func NewServer(cfg *config.Calendar, app *app.App, logger *logger.Logger) *Server {
 	srv := grpc.NewServer(grpc.UnaryInterceptor(serverUnaryInterceptor))
 	pb.RegisterCalendarApiServer(srv, api.NewAPI(app))
 

@@ -23,3 +23,7 @@ func (e *Event) Duration() time.Duration {
 func (e *Event) inPeriod(from time.Time, to time.Time) bool {
 	return e.BeginTime.Before(to) && !e.EndTime.Before(from)
 }
+
+func (e *Event) isAboutToNotify(from time.Time, to time.Time) bool {
+	return !e.NotificationTime.Before(from) && e.NotificationTime.Before(to)
+}

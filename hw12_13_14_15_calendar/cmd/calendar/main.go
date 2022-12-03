@@ -10,18 +10,12 @@ import (
 	"time"
 
 	_ "github.com/jackc/pgx/stdlib"
-	"github.com/jmoiron/sqlx"
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/app"
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/config"
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/logger"
 	internalgrpc "github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/server/grpc"
 	internalhttp "github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/server/http"
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/storage"
-)
-
-const (
-	memoryStorage = "memory"
-	sqlStorage    = "sql"
 )
 
 var configFile string
@@ -38,41 +32,30 @@ func main() {
 		return
 	}
 
-	cfg, err := config.NewConfig(configFile)
+	cfg, err := config.NewCalendarConfig(configFile)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to configure app: %v", err))
 		os.Exit(1)
 	}
 
 	l := logger.New(&cfg.Logger).WithGlobal()
-
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-	defer cancel()
-
-	var s storage.Storage
-	switch cfg.Storage.Type {
-	case memoryStorage:
-		s = storage.NewMemoryStorage()
-	case sqlStorage:
-		db, err := sqlx.Connect("pgx", cfg.Storage.DB.DSN())
-		if err != nil {
-			l.Error(fmt.Sprintf("failed to create DB connection: %v", err))
-			os.Exit(1) //nolint:gocritic
-		}
-		defer func() {
-			if err := db.Close(); err != nil {
-				l.Error(fmt.Sprintf("faield to close DB connection: %v", err))
-			}
-		}()
-		s = storage.NewSQLStorage(db, l)
-	default:
-		l.Error(fmt.Sprintf("unknown storage type: %s", cfg.Storage.Type))
+	s, err := storage.NewStorage(cfg.Storage, l)
+	if err != nil {
+		l.Error(fmt.Sprintf("faield to create storage: %v", err))
 		os.Exit(1)
 	}
+	defer func() {
+		if err := s.Close(); err != nil {
+			l.Error(fmt.Sprintf("faield to close storage: %v", err))
+		}
+	}()
 
 	application := app.New(s, l)
 	grpcSrv := internalgrpc.NewServer(cfg, application, l)
 	httpSrv := internalhttp.NewServer(cfg, application, l)
+
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	defer cancel()
 
 	l.Info("calendar is running...")
 	go func() {
@@ -97,7 +80,6 @@ func main() {
 
 	if err := httpSrv.Stop(ctx); err != nil {
 		l.Error("failed to stop http server: " + err.Error())
-		os.Exit(1)
 	}
 	grpcSrv.Stop()
 }

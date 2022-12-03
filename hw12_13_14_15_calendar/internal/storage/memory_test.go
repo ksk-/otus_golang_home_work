@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -18,6 +17,7 @@ const (
 	testEventsCount   = 3
 	testEventDuration = time.Minute
 	testEventGap      = 10 * time.Second
+	testNotifyIn      = 2 * time.Second
 )
 
 type MemoryStorageTestSuite struct {
@@ -105,15 +105,53 @@ func (s *MemoryStorageTestSuite) TestGetEventsForPeriod() {
 		s.Run("after last", func() {
 			events, err := s.storage.GetEventsForPeriod(ctx, s.begin.Add(211*time.Second), s.begin.Add(time.Hour))
 			s.NoError(err)
-
-			if len(events) > 0 {
-				println(len(events))
-			}
-
 			s.Empty(events)
 		})
 		s.Run("in a gap", func() {
 			events, err := s.storage.GetEventsForPeriod(ctx, s.begin.Add(65*time.Second), s.begin.Add(70*time.Second))
+			s.NoError(err)
+			s.Empty(events)
+		})
+	})
+}
+
+func (s *MemoryStorageTestSuite) TestGetGetEventsToNotify() {
+	ctx := context.Background()
+	s.Run("simple case", func() {
+		s.Run("all events", func() {
+			events, err := s.storage.GetEventsToNotify(ctx, s.begin.Add(-time.Minute), s.begin.Add(150*time.Second))
+			s.NoError(err)
+			s.Equal(s.events, events)
+		})
+		s.Run("1st and 2nd events", func() {
+			events, err := s.storage.GetEventsToNotify(ctx, s.begin.Add(-10*time.Second), s.begin.Add(70*time.Second))
+			s.NoError(err)
+			s.Equal(s.events[:2], events)
+		})
+		s.Run("2st and 3rd events", func() {
+			events, err := s.storage.GetEventsForPeriod(ctx, s.begin.Add(65*time.Second), s.begin.Add(time.Hour))
+			s.NoError(err)
+			s.Equal(s.events[1:], events)
+		})
+		s.Run("2st event", func() {
+			events, err := s.storage.GetEventsForPeriod(ctx, s.begin.Add(100*time.Second), s.begin.Add(70*time.Second))
+			s.NoError(err)
+			s.Equal(s.events[1:1], events)
+		})
+	})
+	s.Run("no events", func() {
+		s.Run("before first", func() {
+			events, err := s.storage.GetEventsToNotify(ctx, s.begin.Add(-time.Second), s.begin)
+			s.NoError(err)
+			s.Empty(events)
+		})
+		s.Run("after last", func() {
+			events, err := s.storage.GetEventsToNotify(ctx, s.begin.Add(211*time.Second), s.begin.Add(time.Hour))
+			s.NoError(err)
+			s.Empty(events)
+		})
+		s.Run("in a gap", func() {
+			events, err := s.storage.GetEventsToNotify(ctx, s.begin.Add(time.Minute), s.begin.Add(65*time.Second))
 			s.NoError(err)
 			s.Empty(events)
 		})
@@ -198,6 +236,25 @@ func (s *MemoryStorageTestSuite) TestDeleteEvent() {
 	})
 }
 
+func (s *MemoryStorageTestSuite) TestDeletePastEvents() {
+	ctx := context.Background()
+	s.Run("simple case", func() {
+		deleted, err := s.storage.DeletePastEvents(ctx, s.begin.Add(3*time.Minute))
+		s.NoError(err)
+		s.Equal(int64(2), deleted)
+	})
+	s.Run("all events are past", func() {
+		deleted, err := s.storage.DeletePastEvents(ctx, s.begin.Add(time.Hour))
+		s.NoError(err)
+		s.Equal(int64(3), deleted)
+	})
+	s.Run("no past events", func() {
+		deleted, err := s.storage.DeletePastEvents(ctx, s.begin.Add(-time.Hour))
+		s.NoError(err)
+		s.Zero(deleted)
+	})
+}
+
 func TestStorage(t *testing.T) {
 	suite.Run(t, new(MemoryStorageTestSuite))
 }
@@ -239,7 +296,7 @@ func makeTestEvent(title string, beginTime time.Time) Event {
 		EndTime:          beginTime.Add(testEventDuration),
 		Description:      "description...",
 		UserID:           uuid.New(),
-		NotificationTime: beginTime.Add(-time.Duration(rand.Intn(10)) * time.Second),
+		NotificationTime: beginTime.Add(-testNotifyIn),
 	}
 }
 

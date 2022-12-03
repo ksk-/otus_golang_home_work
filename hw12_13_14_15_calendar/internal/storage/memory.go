@@ -20,6 +20,10 @@ type memoryStorage struct {
 	mtx    sync.RWMutex
 }
 
+func (m *memoryStorage) Close() error {
+	return nil
+}
+
 func (m *memoryStorage) ListEvents(_ context.Context, limit, offset uint64) ([]Event, error) {
 	events := make([]Event, 0, len(m.events))
 
@@ -64,6 +68,24 @@ func (m *memoryStorage) GetEventsForPeriod(_ context.Context, from, to time.Time
 	return events, nil
 }
 
+func (m *memoryStorage) GetEventsToNotify(_ context.Context, from, to time.Time) ([]Event, error) {
+	events := make([]Event, 0, len(m.events))
+
+	m.mtx.RLock()
+	defer m.mtx.RUnlock()
+
+	for _, event := range m.events {
+		if event.isAboutToNotify(from, to) {
+			events = append(events, event)
+		}
+	}
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].BeginTime.Before(events[j].BeginTime)
+	})
+
+	return events, nil
+}
+
 func (m *memoryStorage) InsertEvent(_ context.Context, event *Event) error {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
@@ -95,6 +117,19 @@ func (m *memoryStorage) DeleteEvent(_ context.Context, id uuid.UUID) error {
 	}
 	delete(m.events, id)
 	return nil
+}
+
+func (m *memoryStorage) DeletePastEvents(_ context.Context, before time.Time) (int64, error) {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+
+	deleted := int64(0)
+	for _, event := range m.events {
+		if event.EndTime.Before(before) {
+			deleted++
+		}
+	}
+	return deleted, nil
 }
 
 func (m *memoryStorage) contains(id uuid.UUID) bool {
