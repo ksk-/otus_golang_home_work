@@ -92,15 +92,12 @@ func main() {
 	<-ctx.Done()
 
 	l.Info("calendar is stopping...")
-	func() {
-		defer grpcSrv.Stop()
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-
-		if err := httpSrv.Stop(ctx); err != nil {
-			l.Error("failed to stop http server: " + err.Error())
-			os.Exit(1)
-		}
-	}()
+	if err := httpSrv.Stop(ctx); err != nil {
+		l.Error("failed to stop http server: " + err.Error())
+		os.Exit(1)
+	}
+	grpcSrv.Stop()
 }

@@ -61,7 +61,7 @@ service CalendarApi
         value: {
           description: "Deleted";
           schema: {
-            json_schema: {ref: ".calendar.UpdateEventV1Response"}
+            json_schema: {ref: ".calendar.DeleteEventV1Response"}
           }
         },
       };
