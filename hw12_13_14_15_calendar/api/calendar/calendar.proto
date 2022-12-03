@@ -1,0 +1,172 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+package calendar;
+
+option go_package = "github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/pkg/calendarpb";
+
+// Calendar API
+service CalendarApi
+{
+  // Create a new event
+  rpc CreateEventV1(CreateEventV1Request) returns (CreateEventV1Response) {
+    option (google.api.http) = {
+      post: "/api/v1/events",
+      body: "*",
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      responses: {
+        key: "201",
+        value: {
+          description: "Created";
+          schema: {
+            json_schema: {ref: ".calendar.CreateEventV1Response"}
+          }
+        },
+      };
+    };
+  }
+
+  // Update event
+  rpc UpdateEventV1(UpdateEventV1Request) returns (UpdateEventV1Response) {
+    option (google.api.http) = {
+      put: "/api/v1/events/{event.id}",
+      body: "*",
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      responses: {
+        key: "204",
+        value: {
+          description: "Updated";
+          schema: {
+            json_schema: {ref: ".calendar.UpdateEventV1Response"}
+          }
+        },
+      };
+    };
+  }
+
+  // Delete event
+  rpc DeleteEventV1(DeleteEventV1Request) returns (DeleteEventV1Response) {
+    option (google.api.http) = {
+      delete: "/api/v1/events/{event_id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      responses: {
+        key: "204",
+        value: {
+          description: "Deleted";
+          schema: {
+            json_schema: {ref: ".calendar.DeleteEventV1Response"}
+          }
+        },
+      };
+    };
+  }
+
+  // Get event for the specified date
+  rpc GetEventsOfDayV1(GetEventsV1Request) returns (GetEventsV1Response) {
+    option (google.api.http) = {
+      get: "/api/v1/events/day/{since}"
+    };
+  }
+
+  // Get event for the specified week
+  rpc GetEventsOfWeekV1(GetEventsV1Request) returns (GetEventsV1Response) {
+    option (google.api.http) = {
+      get: "/api/v1/events/week/{since}"
+    };
+  }
+
+  // Get event for the specified month
+  rpc GetEventsOfMonthV1(GetEventsV1Request) returns (GetEventsV1Response) {
+    option (google.api.http) = {
+      get: "/api/v1/events/month/{since}"
+    };
+  }
+}
+
+// Event
+message Event {
+  // Event ID
+  string id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { format: "uuid"}];
+
+  // Title
+  string title = 2;
+
+  // Begin of event
+  google.protobuf.Timestamp begin_time = 3;
+
+  // End of event
+  google.protobuf.Timestamp end_time = 4;
+
+  // Description
+  string description = 5;
+
+  // User ID
+  string user_id = 6 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { format: "uuid" }];
+
+  // Notify in
+  google.protobuf.Duration notify_in = 7;
+}
+
+// Create event request
+message CreateEventV1Request {
+  // Title
+  string title = 1;
+
+  // Begin of event
+  google.protobuf.Timestamp begin_time = 2;
+
+  // End of event
+  google.protobuf.Timestamp end_time = 3;
+
+  // Description
+  string description = 4;
+
+  // User ID
+  string user_id = 5 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { format: "uuid" }];
+
+  // Notify in
+  google.protobuf.Duration notify_in = 6;
+}
+
+// Create event response
+message CreateEventV1Response {
+  // Created event ID
+  string event_id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { format: "uuid" }];
+}
+
+// Update event request
+message UpdateEventV1Request {
+  // Event
+  Event event = 1;
+}
+
+// Update event response
+message UpdateEventV1Response {}
+
+// Delete event request
+message DeleteEventV1Request {
+  // Event ID
+  string event_id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { format: "uuid" }];
+}
+
+// Delete event response
+message DeleteEventV1Response {}
+
+// Get events request
+message GetEventsV1Request {
+  // The begin of requested period
+  google.protobuf.Timestamp since = 1;
+}
+
+// Get events response
+message GetEventsV1Response {
+  // Requested events
+  repeated Event events = 1;
+}

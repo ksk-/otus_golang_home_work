@@ -35,7 +35,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 			host, reqTime.Format(timeFormat), r.Method, r.URL, r.Proto, status, time.Since(reqTime), r.UserAgent(),
 		)
 
-		logger.Global.Debug(msg)
+		logger.Debug(msg)
 	})
 }
 

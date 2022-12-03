@@ -14,6 +14,7 @@ import (
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/app"
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/config"
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/logger"
+	internalgrpc "github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/server/grpc"
 	internalhttp "github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/server/http"
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/storage"
 )
@@ -39,11 +40,11 @@ func main() {
 
 	cfg, err := config.NewConfig(configFile)
 	if err != nil {
-		logger.Global.Error(fmt.Sprintf("failed to configure app: %v", err))
+		logger.Error(fmt.Sprintf("failed to configure app: %v", err))
 		os.Exit(1)
 	}
 
-	l := logger.New(&cfg.Logger)
+	l := logger.New(&cfg.Logger).WithGlobal()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
@@ -63,30 +64,40 @@ func main() {
 				l.Error(fmt.Sprintf("faield to close DB connection: %v", err))
 			}
 		}()
+		s = storage.NewSQLStorage(db, l)
 	default:
 		l.Error(fmt.Sprintf("unknown storage type: %s", cfg.Storage.Type))
 		os.Exit(1)
 	}
 
-	server := internalhttp.NewServer(l, app.New(l, s), cfg.HTTP.Addr())
+	application := app.New(s, l)
+	grpcSrv := internalgrpc.NewServer(cfg, application, l)
+	httpSrv := internalhttp.NewServer(cfg, application, l)
 
+	l.Info("calendar is running...")
 	go func() {
-		<-ctx.Done()
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-		defer cancel()
-
-		if err := server.Stop(ctx); err != nil {
-			l.Error("failed to stop http server: " + err.Error())
+		if err := grpcSrv.Start(); err != nil {
+			l.Error(fmt.Sprintf("failed to start gRPC server: %v", err))
+			cancel()
 			os.Exit(1)
 		}
 	}()
+	go func() {
+		if err := httpSrv.Start(ctx); err != nil {
+			l.Error(fmt.Sprintf("failed to start http server: %v", err))
+			cancel()
+			os.Exit(1)
+		}
+	}()
+	<-ctx.Done()
 
-	l.Info("calendar is running...")
-	if err := server.Start(ctx); err != nil {
-		l.Error("failed to start http server: " + err.Error())
-		cancel()
+	l.Info("calendar is stopping...")
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if err := httpSrv.Stop(ctx); err != nil {
+		l.Error("failed to stop http server: " + err.Error())
 		os.Exit(1)
 	}
-	l.Info("calendar is stopping...")
+	grpcSrv.Stop()
 }
