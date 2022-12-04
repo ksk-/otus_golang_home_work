@@ -56,7 +56,7 @@ func (q *Queue) ConsumeChannel(ctx context.Context, consumer string) (<-chan []b
 func NewQueue(uri, queue string) (*Queue, error) {
 	conn, err := amqp.Dial(uri)
 	if err != nil {
-		return nil, fmt.Errorf("connect to rmqL %w", err)
+		return nil, fmt.Errorf("connect to rmq: %w", err)
 	}
 
 	channel, err := conn.Channel()

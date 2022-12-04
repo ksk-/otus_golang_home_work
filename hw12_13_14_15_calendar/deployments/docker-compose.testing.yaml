@@ -9,7 +9,6 @@ services:
     command:
       - --service=calendar:6703
       - --events-db=postgres://${CALENDAR_PG_USER}:${CALENDAR_PG_PASSWORD}@postgres:5432/${CALENDAR_PG_DB_NAME}
-      - --migrations-dir=/migrations
       - --rmq-uri=amqp://${CALENDAR_RMQ_USER}:${CALENDAR_RMQ_PASSWORD}@rmq:5672
       - --queue=${CALENDAR_SENT_NOTIFICATIONS_RMQ_QUEUE}
     depends_on:
@@ -22,6 +21,7 @@ services:
       - default
 
   calendar:
+    restart: on-failure
     container_name: calendar
     build:
       context: ..
@@ -31,10 +31,11 @@ services:
     networks:
       - default
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
 
   scheduler:
+    restart: on-failure
     container_name: calendar_scheduler
     build:
       context: ..
@@ -44,12 +45,13 @@ services:
     networks:
       - default
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
       rmq:
         condition: service_healthy
 
   sender:
+    restart: on-failure
     container_name: calendar_sender
     build:
       context: ..
@@ -62,9 +64,28 @@ services:
       rmq:
         condition: service_healthy
 
+  migrator:
+    container_name: goose
+    build:
+      context: ..
+      dockerfile: build/Dockerfile.goose
+    environment:
+      GOOSE_DRIVER: postgres
+      GOOSE_DBSTRING: postgres://${CALENDAR_PG_USER}:${CALENDAR_PG_PASSWORD}@postgres:5432/${CALENDAR_PG_DB_NAME}
+    command:
+      - --dir=/migrations
+      - up
+    volumes:
+      - ../migrations:/migrations:ro
+    networks:
+      - default
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
+    restart: on-failure
     image: postgres
-    restart: always
     environment:
       POSTGRES_USER: ${CALENDAR_PG_USER}
       POSTGRES_PASSWORD: ${CALENDAR_PG_PASSWORD}
@@ -78,19 +99,19 @@ services:
       retries: 5
 
   rmq:
+    restart: on-failure
     container_name: "rmq"
-    restart: always
-    image: rabbitmq:3-management
+    image: rabbitmq:3.11-management-alpine
     environment:
       - RABBITMQ_DEFAULT_USER=${CALENDAR_RMQ_USER}
       - RABBITMQ_DEFAULT_PASS=${CALENDAR_RMQ_PASSWORD}
     networks:
       - default
     healthcheck:
-      test: rabbitmq-diagnostics -q ping
-      interval: 10s
-      timeout: 3s
-      retries: 5
+      test: rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms
+      interval: 30s
+      timeout: 30s
+      retries: 3
 
 networks:
   default:

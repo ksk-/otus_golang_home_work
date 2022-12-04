@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
   calendar:
+    restart: on-failure
     container_name: calendar
     build:
       context: ..
@@ -14,9 +15,11 @@ services:
     networks:
       - default
     depends_on:
-      - migrator
+      migrator:
+        condition: service_completed_successfully
 
   scheduler:
+    restart: on-failure
     container_name: calendar_scheduler
     build:
       context: ..
@@ -27,11 +30,12 @@ services:
       - default
     depends_on:
       migrator:
-        condition: service_started
+        condition: service_completed_successfully
       rmq:
         condition: service_healthy
 
   sender:
+    restart: on-failure
     container_name: calendar_sender
     build:
       context: ..
@@ -64,8 +68,8 @@ services:
         condition: service_healthy
 
   postgres:
+    restart: on-failure
     image: postgres
-    restart: always
     environment:
       POSTGRES_USER: ${CALENDAR_PG_USER}
       POSTGRES_PASSWORD: ${CALENDAR_PG_PASSWORD}
@@ -81,9 +85,9 @@ services:
       retries: 5
 
   rmq:
+    restart: on-failure
     container_name: "rmq"
-    restart: always
-    image: rabbitmq:3-management
+    image: rabbitmq:3.11-management-alpine
     environment:
       - RABBITMQ_DEFAULT_USER=${CALENDAR_RMQ_USER}
       - RABBITMQ_DEFAULT_PASS=${CALENDAR_RMQ_PASSWORD}
@@ -93,10 +97,10 @@ services:
     networks:
       - default
     healthcheck:
-      test: rabbitmq-diagnostics -q ping
-      interval: 10s
-      timeout: 3s
-      retries: 5
+      test: rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms
+      interval: 30s
+      timeout: 30s
+      retries: 3
 
 networks:
   default:

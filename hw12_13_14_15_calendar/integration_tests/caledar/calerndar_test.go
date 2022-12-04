@@ -17,7 +17,6 @@ import (
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/notify"
 	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/rmq"
 	pb "github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/pkg/calendarpb"
-	"github.com/pressly/goose"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -26,17 +25,15 @@ import (
 )
 
 var (
-	serviceAddr   string
-	eventsDSN     string
-	migrationsDir string
-	rmqURI        string
-	rmqQueue      string
+	serviceAddr string
+	eventsDSN   string
+	rmqURI      string
+	rmqQueue    string
 )
 
 func TestMain(m *testing.M) {
 	flag.StringVar(&serviceAddr, "service", "localhost:6703", "calendar service address")
-	flag.StringVar(&eventsDSN, "events-db", "postgres://user:password123@localhost:5432/events", "events DB DSN")
-	flag.StringVar(&migrationsDir, "migrations-dir", "migrations", "events DB migrations directory")
+	flag.StringVar(&eventsDSN, "events-db", "postgres://user:password123@localhost:5432/calendar", "events DB DSN")
 	flag.StringVar(&rmqURI, "rmq-uri", "amqp://user:password123@localhost:5672", "RMQ service URI")
 	flag.StringVar(&rmqQueue, "queue", "event_notifications_sent", "RMQ queue name (to read sent notifications)")
 	os.Exit(m.Run())
@@ -55,20 +52,21 @@ type calendarTestSuite struct {
 func (s *calendarTestSuite) SetupSuite() {
 	db, err := sql.Open("pgx", eventsDSN)
 	s.NoError(err)
-	s.NoError(goose.Up(db, migrationsDir))
 	s.db = db
 }
 
 func (s *calendarTestSuite) SetupTest() {
-	_, err := s.db.ExecContext(context.Background(), `TRUNCATE TABLE events`)
-	s.NoError(err)
-
 	conn, err := grpc.Dial(
 		serviceAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	s.NoError(err)
 	s.client = pb.NewCalendarApiClient(conn)
+}
+
+func (s *calendarTestSuite) TearDownTest() {
+	_, err := s.db.ExecContext(context.Background(), `TRUNCATE TABLE events`)
+	s.NoError(err)
 }
 
 func (s *calendarTestSuite) TearDownSuite() {

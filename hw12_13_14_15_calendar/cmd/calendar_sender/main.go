@@ -36,7 +36,7 @@ func main() {
 
 	queue, err := rmq.NewQueue(cfg.RMQ.URI(), cfg.RMQ.Queue)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to create close RMQ queue: %v", err))
+		logger.Error(fmt.Sprintf("failed to create RMQ queue: %v", err))
 		os.Exit(1)
 	}
 	defer func() {
