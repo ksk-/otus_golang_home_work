@@ -21,13 +21,13 @@ import (
 )
 
 type Server struct {
-	cfg    *config.Config
+	cfg    *config.Calendar
 	app    *app.App
 	logger *logger.Logger
 	srv    *http.Server
 }
 
-func NewServer(cfg *config.Config, app *app.App, logger *logger.Logger) *Server {
+func NewServer(cfg *config.Calendar, app *app.App, logger *logger.Logger) *Server {
 	return &Server{
 		cfg:    cfg,
 		app:    app,

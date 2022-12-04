@@ -3,11 +3,9 @@ package config
 import (
 	"fmt"
 	"net"
-	"os"
 	"strconv"
 
 	"github.com/rs/zerolog"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -45,34 +43,19 @@ type Logger struct {
 	Pretty bool     `yaml:"pretty"`
 }
 
-type Config struct {
-	Logger Logger `yaml:"logger"`
-
-	Storage struct {
-		Type string   `yaml:"type"`
-		DB   DBConfig `yaml:"db"`
-	} `yaml:"storage"`
-
-	HTTP ServiceAddr `yaml:"http"`
-	GRPC ServiceAddr `yaml:"grpc"`
+type Storage struct {
+	Type string    `yaml:"type"`
+	DB   *DBConfig `yaml:"db"`
 }
 
-func NewConfig(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read config file: %w", err)
-	}
+type RMQConfig struct {
+	ServiceAddr `yaml:",inline"`
+	Scheme      string `yaml:"scheme"`
+	User        string `yaml:"user"`
+	Password    string `yaml:"password"`
+	Queue       string `yaml:"queue"`
+}
 
-	var cfg Config
-	cfg.Logger.Level = defaultLogLevel
-	cfg.Logger.Pretty = false
-	cfg.Storage.Type = defaultStorageType
-	cfg.HTTP.Host = defaultHost
-	cfg.GRPC.Host = defaultHost
-
-	if err = yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("parse config: %w", err)
-	}
-
-	return &cfg, nil
+func (r *RMQConfig) URI() string {
+	return fmt.Sprintf("%s://%s:%s@%s", r.Scheme, r.User, r.Password, r.Addr())
 }

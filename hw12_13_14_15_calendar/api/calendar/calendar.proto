@@ -22,12 +22,12 @@ service CalendarApi
       responses: {
         key: "201",
         value: {
-          description: "Created";
+          description: "Created",
           schema: {
             json_schema: {ref: ".calendar.CreateEventV1Response"}
           }
         },
-      };
+      },
     };
   }
 
@@ -41,12 +41,12 @@ service CalendarApi
       responses: {
         key: "204",
         value: {
-          description: "Updated";
+          description: "Updated",
           schema: {
             json_schema: {ref: ".calendar.UpdateEventV1Response"}
           }
         },
-      };
+      },
     };
   }
 
@@ -59,12 +59,12 @@ service CalendarApi
       responses: {
         key: "204",
         value: {
-          description: "Deleted";
+          description: "Deleted",
           schema: {
             json_schema: {ref: ".calendar.DeleteEventV1Response"}
           }
         },
-      };
+      },
     };
   }
 

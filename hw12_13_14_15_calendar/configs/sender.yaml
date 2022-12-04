@@ -1,0 +1,11 @@
+logger:
+  level: debug
+  pretty: true
+
+rmq:
+  scheme: amqp
+  host: localhost
+  port: 5672
+  user: user
+  password: password123
+  queue: "event_notifications"

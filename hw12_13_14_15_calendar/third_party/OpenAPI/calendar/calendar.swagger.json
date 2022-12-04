@@ -214,7 +214,7 @@
           "204": {
             "description": "Deleted",
             "schema": {
-              "$ref": "#/definitions/calendarUpdateEventV1Response"
+              "$ref": "#/definitions/calendarDeleteEventV1Response"
             }
           },
           "default": {
