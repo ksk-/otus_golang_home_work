@@ -1,0 +1,28 @@
+# Собираем в гошке
+FROM golang:1.18.8 as build
+
+COPY . /app
+WORKDIR /app
+
+# Кэшируем слои с модулями
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
+# Собираем статический бинарник Go (без зависимостей на Си API),
+# иначе он не будет работать в alpine образе.
+ARG LDFLAGS
+RUN CGO_ENABLED=0 go build \
+        -ldflags "$LDFLAGS" \
+        -o bin/calendar cmd/calendar/*
+
+# На выходе тонкий образ
+FROM alpine:3.9
+
+LABEL ORGANIZATION="OTUS Online Education"
+LABEL SERVICE="calendar"
+LABEL MAINTAINERS="iksk810@yandex.ru"
+
+COPY --from=build /app/bin/calendar /opt/calendar/calendar
+COPY ./configs/calendar.yaml /etc/calendar/calendar.yaml
+ENTRYPOINT [ "/opt/calendar/calendar" ]

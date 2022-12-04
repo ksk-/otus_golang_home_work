@@ -1,70 +1,81 @@
-package api_test
+//go:build integration
+
+package caledar_test
 
 import (
 	"context"
-	"net"
+	"database/sql"
+	"encoding/json"
+	"flag"
+	"os"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/api"
-	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/app"
-	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/logger"
-	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/storage"
+	_ "github.com/jackc/pgx/stdlib"
+	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/notify"
+	"github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/internal/rmq"
 	pb "github.com/ksk-/otus_golang_home_work/hw12_13_14_15_calendar/pkg/calendarpb"
+	"github.com/pressly/goose"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const bufferSize = 1024 * 1024
+var (
+	serviceAddr   string
+	eventsDSN     string
+	migrationsDir string
+	rmqURI        string
+	rmqQueue      string
+)
 
-type apiTestSuite struct {
+func TestMain(m *testing.M) {
+	flag.StringVar(&serviceAddr, "service", "localhost:6703", "calendar service address")
+	flag.StringVar(&eventsDSN, "events-db", "postgres://user:password123@localhost:5432/events", "events DB DSN")
+	flag.StringVar(&migrationsDir, "migrations-dir", "migrations", "events DB migrations directory")
+	flag.StringVar(&rmqURI, "rmq-uri", "amqp://user:password123@localhost:5672", "RMQ service URI")
+	flag.StringVar(&rmqQueue, "queue", "event_notifications_sent", "RMQ queue name (to read sent notifications)")
+	os.Exit(m.Run())
+}
+
+func TestCalendar(t *testing.T) {
+	suite.Run(t, new(calendarTestSuite))
+}
+
+type calendarTestSuite struct {
 	suite.Suite
-	storage  storage.Storage
-	srv      *grpc.Server
-	listener *bufconn.Listener
-
-	conn   *grpc.ClientConn
+	db     *sql.DB
 	client pb.CalendarApiClient
 }
 
-func (s *apiTestSuite) SetupSuite() {
-	s.storage = storage.NewMemoryStorage()
-	s.srv = grpc.NewServer()
-	s.listener = bufconn.Listen(bufferSize)
-
-	pb.RegisterCalendarApiServer(s.srv, api.NewAPI(app.New(s.storage, logger.Global())))
-	go func() {
-		s.NoError(s.srv.Serve(s.listener))
-	}()
+func (s *calendarTestSuite) SetupSuite() {
+	db, err := sql.Open("pgx", eventsDSN)
+	s.NoError(err)
+	s.NoError(goose.Up(db, migrationsDir))
+	s.db = db
 }
 
-func (s *apiTestSuite) SetupTest() {
-	conn, err := grpc.DialContext(
-		context.Background(), "api_test",
-		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
-			return s.listener.Dial()
-		}),
+func (s *calendarTestSuite) SetupTest() {
+	_, err := s.db.ExecContext(context.Background(), `TRUNCATE TABLE events`)
+	s.NoError(err)
+
+	conn, err := grpc.Dial(
+		serviceAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	s.NoError(err)
-	s.conn = conn
 	s.client = pb.NewCalendarApiClient(conn)
 }
 
-func (s *apiTestSuite) TearDownTest() {
-	s.NoError(s.conn.Close())
+func (s *calendarTestSuite) TearDownSuite() {
+	s.NoError(s.db.Close())
 }
 
-func (s *apiTestSuite) TearDownSuite() {
-	s.srv.Stop()
-}
-
-func (s *apiTestSuite) TestCreateEvent() {
+func (s *calendarTestSuite) TestCreateEvent() {
 	ctx := context.Background()
 	s.Run("simple case", func() {
 		res, err := s.client.CreateEventV1(ctx, &pb.CreateEventV1Request{
@@ -78,10 +89,11 @@ func (s *apiTestSuite) TestCreateEvent() {
 		eventID, err := uuid.Parse(res.EventId)
 		s.NoError(err)
 
-		event, err := s.storage.GetEvent(ctx, eventID)
+		created, err := s.client.GetEvent(ctx, &pb.GetEventV1Request{EventId: eventID.String()})
 		s.NoError(err)
-		s.Equal(eventID, event.ID)
-		s.Equal("event_1", event.Title)
+		s.NotNil(created.Event)
+		s.Equal(res.EventId, created.Event.Id)
+		s.Equal("event_1", created.Event.Title)
 	})
 	s.Run("create unique events id", func() {
 		res1, err := s.client.CreateEventV1(ctx, &pb.CreateEventV1Request{
@@ -106,13 +118,14 @@ func (s *apiTestSuite) TestCreateEvent() {
 	})
 }
 
-func (s *apiTestSuite) TestUpdateEvent() {
+func (s *calendarTestSuite) TestUpdateEvent() {
 	ctx := context.Background()
 	eventID := s.addTestEvent()
+
 	s.Run("simple case", func() {
 		_, err := s.client.UpdateEventV1(ctx, &pb.UpdateEventV1Request{
 			Event: &pb.Event{
-				Id:        eventID.String(),
+				Id:        eventID,
 				Title:     "changed_event",
 				BeginTime: timestamppb.New(time.Now()),
 				EndTime:   timestamppb.New(time.Now().Add(time.Second)),
@@ -122,9 +135,10 @@ func (s *apiTestSuite) TestUpdateEvent() {
 		})
 		s.NoError(err)
 
-		event, err := s.storage.GetEvent(ctx, eventID)
+		updated, err := s.client.GetEvent(ctx, &pb.GetEventV1Request{EventId: eventID})
 		s.NoError(err)
-		s.Equal("changed_event", event.Title)
+		s.NotNil(updated.Event)
+		s.Equal("changed_event", updated.Event.Title)
 	})
 	s.Run("non existent event", func() {
 		_, err := s.client.UpdateEventV1(ctx, &pb.UpdateEventV1Request{
@@ -137,7 +151,7 @@ func (s *apiTestSuite) TestUpdateEvent() {
 				NotifyIn:  durationpb.New(time.Second),
 			},
 		})
-		s.ErrorContains(err, storage.ErrEventNotFound.Error())
+		s.ErrorContains(err, "event not found")
 	})
 	s.Run("invalid request", func() {
 		_, err := s.client.UpdateEventV1(ctx, &pb.UpdateEventV1Request{
@@ -147,27 +161,27 @@ func (s *apiTestSuite) TestUpdateEvent() {
 	})
 }
 
-func (s *apiTestSuite) TestDeleteEvent() {
+func (s *calendarTestSuite) TestDeleteEvent() {
 	ctx := context.Background()
 	eventID := s.addTestEvent()
 	s.Run("simple case", func() {
-		_, err := s.client.DeleteEventV1(ctx, &pb.DeleteEventV1Request{EventId: eventID.String()})
+		_, err := s.client.DeleteEventV1(ctx, &pb.DeleteEventV1Request{EventId: eventID})
 		s.NoError(err)
 
-		_, err = s.storage.GetEvent(ctx, eventID)
-		s.ErrorIs(err, storage.ErrEventNotFound)
+		_, err = s.client.GetEvent(ctx, &pb.GetEventV1Request{EventId: eventID})
+		s.ErrorContains(err, "event not found")
 	})
 	s.Run("non existent event", func() {
 		_, err := s.client.DeleteEventV1(ctx, &pb.DeleteEventV1Request{EventId: uuid.New().String()})
-		s.ErrorContains(err, storage.ErrEventNotFound.Error())
+		s.ErrorContains(err, "event not found")
 	})
 }
 
-func (s *apiTestSuite) TestGetEventsOfDay() {
+func (s *calendarTestSuite) TestGetEventsOfDay() {
 	today := time.Now().Truncate(24 * time.Hour)
 	yesterday := today.AddDate(0, 0, -1)
 	tomorrow := today.AddDate(0, 0, 1)
-	s.fillEventStorage(yesterday, 4*time.Hour, 18)
+	s.addTestEvents(yesterday, 4*time.Hour, 18)
 
 	ctx := context.Background()
 	s.Run("in period", func() {
@@ -186,8 +200,8 @@ func (s *apiTestSuite) TestGetEventsOfDay() {
 	})
 }
 
-func (s *apiTestSuite) TestGetEventsOfWeek() {
-	s.fillEventStorage(time.Now(), 24*time.Hour, 10)
+func (s *calendarTestSuite) TestGetEventsOfWeek() {
+	s.addTestEvents(time.Now(), 24*time.Hour, 10)
 
 	ctx := context.Background()
 	s.Run("in period", func() {
@@ -206,8 +220,8 @@ func (s *apiTestSuite) TestGetEventsOfWeek() {
 	})
 }
 
-func (s *apiTestSuite) TestGetEventsOfMonth() {
-	s.fillEventStorage(time.Now(), 24*time.Hour, 35)
+func (s *calendarTestSuite) TestGetEventsOfMonth() {
+	s.addTestEvents(time.Now(), 24*time.Hour, 35)
 
 	ctx := context.Background()
 	s.Run("in period", func() {
@@ -226,53 +240,73 @@ func (s *apiTestSuite) TestGetEventsOfMonth() {
 	})
 }
 
-func TestAPI(t *testing.T) {
-	suite.Run(t, new(apiTestSuite))
-}
+func (s *calendarTestSuite) TestSendNotifications() {
+	queue, err := rmq.NewQueue(rmqURI, rmqQueue)
+	s.NoError(err)
 
-func (s *apiTestSuite) addTestEvent() uuid.UUID {
-	eventID := uuid.New()
-	event := storage.Event{
-		ID:               eventID,
-		BeginTime:        time.Now(),
-		EndTime:          time.Now().Add(time.Second),
-		UserID:           uuid.New(),
-		NotificationTime: time.Now().Add(-time.Second),
-	}
-	s.NoError(s.storage.InsertEvent(context.Background(), &event))
-	return eventID
-}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-func (s *apiTestSuite) clearStorage() {
-	ctx := context.Background()
-	events := make([]storage.Event, 0)
+	ch, err := queue.ConsumeChannel(ctx, "TestSendNotifications")
+	s.NoError(err)
 
-	limit := uint64(1000)
-	for i := uint64(0); true; i++ {
-		page, err := s.storage.ListEvents(ctx, limit, i*limit)
-		s.NoError(err)
-		if len(page) == 0 {
-			break
+	count := 5
+	since := time.Now().Add(3 * time.Second)
+	events := s.addTestEvents(since, time.Second, count)
+	notifications := make([]notify.Notification, 0, count)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer cancel()
+		defer wg.Done()
+		s.Eventually(func() bool {
+			return len(notifications) == count
+		}, time.Minute, time.Millisecond)
+	}()
+	go func() {
+		defer wg.Done()
+		for msg := range ch {
+			var notification notify.Notification
+			s.NoError(json.Unmarshal(msg, &notification))
+			notifications = append(notifications, notification)
 		}
-		events = append(events, page...)
-	}
-	for _, event := range events {
-		s.NoError(s.storage.DeleteEvent(ctx, event.ID))
+	}()
+	<-ctx.Done()
+	wg.Wait()
+
+	s.Equal(len(events), len(notifications))
+	for i := 0; i < len(events); i++ {
+		s.Equal(events[i], notifications[i].EventID.String())
 	}
 }
 
-func (s *apiTestSuite) fillEventStorage(since time.Time, d time.Duration, count int) {
-	s.clearStorage()
+func (s *calendarTestSuite) addTestEvent() string {
+	res, err := s.client.CreateEventV1(context.Background(), &pb.CreateEventV1Request{
+		BeginTime: timestamppb.New(time.Now()),
+		EndTime:   timestamppb.New(time.Now().Add(time.Second)),
+		UserId:    uuid.New().String(),
+		NotifyIn:  durationpb.New(time.Second),
+	})
+	s.NoError(err)
+	return res.EventId
+}
+
+func (s *calendarTestSuite) addTestEvents(since time.Time, d time.Duration, count int) []string {
+	added := make([]string, 0)
+
 	t := since
 	for i := 0; i < count; i++ {
-		event := storage.Event{
-			ID:               uuid.New(),
-			BeginTime:        t,
-			EndTime:          t.Add(d),
-			UserID:           uuid.New(),
-			NotificationTime: t,
-		}
-		s.NoError(s.storage.InsertEvent(context.Background(), &event))
+		res, err := s.client.CreateEventV1(context.Background(), &pb.CreateEventV1Request{
+			BeginTime: timestamppb.New(t),
+			EndTime:   timestamppb.New(t.Add(d)),
+			UserId:    uuid.New().String(),
+			NotifyIn:  durationpb.New(0),
+		})
+		s.NoError(err)
 		t = t.Add(d)
+		added = append(added, res.EventId)
 	}
+
+	return added
 }

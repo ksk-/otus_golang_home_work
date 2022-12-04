@@ -4,7 +4,7 @@ logger:
 
 rmq:
   scheme: amqp
-  host: localhost
+  host: rmq
   port: 5672
   user: user
   password: password123

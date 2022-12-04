@@ -28,6 +28,8 @@ type CalendarApiClient interface {
 	UpdateEventV1(ctx context.Context, in *UpdateEventV1Request, opts ...grpc.CallOption) (*UpdateEventV1Response, error)
 	// Delete event
 	DeleteEventV1(ctx context.Context, in *DeleteEventV1Request, opts ...grpc.CallOption) (*DeleteEventV1Response, error)
+	// Get event
+	GetEvent(ctx context.Context, in *GetEventV1Request, opts ...grpc.CallOption) (*GetEventV1Response, error)
 	// Get event for the specified date
 	GetEventsOfDayV1(ctx context.Context, in *GetEventsV1Request, opts ...grpc.CallOption) (*GetEventsV1Response, error)
 	// Get event for the specified week
@@ -71,6 +73,15 @@ func (c *calendarApiClient) DeleteEventV1(ctx context.Context, in *DeleteEventV1
 	return out, nil
 }
 
+func (c *calendarApiClient) GetEvent(ctx context.Context, in *GetEventV1Request, opts ...grpc.CallOption) (*GetEventV1Response, error) {
+	out := new(GetEventV1Response)
+	err := c.cc.Invoke(ctx, "/calendar.CalendarApi/GetEvent", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *calendarApiClient) GetEventsOfDayV1(ctx context.Context, in *GetEventsV1Request, opts ...grpc.CallOption) (*GetEventsV1Response, error) {
 	out := new(GetEventsV1Response)
 	err := c.cc.Invoke(ctx, "/calendar.CalendarApi/GetEventsOfDayV1", in, out, opts...)
@@ -108,6 +119,8 @@ type CalendarApiServer interface {
 	UpdateEventV1(context.Context, *UpdateEventV1Request) (*UpdateEventV1Response, error)
 	// Delete event
 	DeleteEventV1(context.Context, *DeleteEventV1Request) (*DeleteEventV1Response, error)
+	// Get event
+	GetEvent(context.Context, *GetEventV1Request) (*GetEventV1Response, error)
 	// Get event for the specified date
 	GetEventsOfDayV1(context.Context, *GetEventsV1Request) (*GetEventsV1Response, error)
 	// Get event for the specified week
@@ -129,6 +142,9 @@ func (UnimplementedCalendarApiServer) UpdateEventV1(context.Context, *UpdateEven
 }
 func (UnimplementedCalendarApiServer) DeleteEventV1(context.Context, *DeleteEventV1Request) (*DeleteEventV1Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteEventV1 not implemented")
+}
+func (UnimplementedCalendarApiServer) GetEvent(context.Context, *GetEventV1Request) (*GetEventV1Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetEvent not implemented")
 }
 func (UnimplementedCalendarApiServer) GetEventsOfDayV1(context.Context, *GetEventsV1Request) (*GetEventsV1Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetEventsOfDayV1 not implemented")
@@ -206,6 +222,24 @@ func _CalendarApi_DeleteEventV1_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CalendarApi_GetEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEventV1Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CalendarApiServer).GetEvent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/calendar.CalendarApi/GetEvent",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CalendarApiServer).GetEvent(ctx, req.(*GetEventV1Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CalendarApi_GetEventsOfDayV1_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetEventsV1Request)
 	if err := dec(in); err != nil {
@@ -278,6 +312,10 @@ var CalendarApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteEventV1",
 			Handler:    _CalendarApi_DeleteEventV1_Handler,
+		},
+		{
+			MethodName: "GetEvent",
+			Handler:    _CalendarApi_GetEvent_Handler,
 		},
 		{
 			MethodName: "GetEventsOfDayV1",

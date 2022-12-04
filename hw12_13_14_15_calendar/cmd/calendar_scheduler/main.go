@@ -33,7 +33,7 @@ func main() {
 	}
 
 	l := logger.New(&cfg.Logger).WithGlobal()
-	s, err := storage.NewStorage(cfg.Storage, l)
+	s, err := storage.NewStorage(&cfg.Storage, l)
 	if err != nil {
 		l.Error(fmt.Sprintf("faield to create storage: %v", err))
 		os.Exit(1)
@@ -44,7 +44,7 @@ func main() {
 		}
 	}()
 
-	notifier, err := rmq.NewNotifier(&cfg.RMQ)
+	notifier, err := rmq.NewNotifier(cfg.RMQ.URI(), cfg.RMQ.Queue)
 	if err != nil {
 		l.Error(fmt.Sprintf("failed to creqte RMQ notifier: %v", err))
 		os.Exit(1) //nolint:gocritic

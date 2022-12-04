@@ -1,20 +1,38 @@
 version: "3.9"
 
 services:
+  calendar_test:
+    container_name: calendar_test
+    build:
+      context: ..
+      dockerfile: build/Dockerfile.testing
+    command:
+      - --service=calendar:6703
+      - --events-db=postgres://${CALENDAR_PG_USER}:${CALENDAR_PG_PASSWORD}@postgres:5432/${CALENDAR_PG_DB_NAME}
+      - --migrations-dir=/migrations
+      - --rmq-uri=amqp://${CALENDAR_RMQ_USER}:${CALENDAR_RMQ_PASSWORD}@rmq:5672
+      - --queue=${CALENDAR_SENT_NOTIFICATIONS_RMQ_QUEUE}
+    depends_on:
+      - calendar
+      - scheduler
+      - sender
+    volumes:
+      - ../migrations:/migrations:ro
+    networks:
+      - default
+
   calendar:
     container_name: calendar
     build:
       context: ..
       dockerfile: build/Dockerfile.calendar
-    ports:
-      - "${CALENDAR_GRPC_PORT}:6703"
-      - "${CALENDAR_HTTP_PORT}:8080"
     volumes:
       - ../configs:/etc/calendar:ro
     networks:
       - default
     depends_on:
-      - migrator
+      postgres:
+        condition: service_healthy
 
   scheduler:
     container_name: calendar_scheduler
@@ -26,8 +44,8 @@ services:
     networks:
       - default
     depends_on:
-      migrator:
-        condition: service_started
+      postgres:
+        condition: service_healthy
       rmq:
         condition: service_healthy
 
@@ -44,25 +62,6 @@ services:
       rmq:
         condition: service_healthy
 
-  migrator:
-    container_name: goose
-    build:
-      context: ..
-      dockerfile: build/Dockerfile.goose
-    environment:
-      GOOSE_DRIVER: postgres
-      GOOSE_DBSTRING: postgres://${CALENDAR_PG_USER}:${CALENDAR_PG_PASSWORD}@postgres:5432/${CALENDAR_PG_DB_NAME}
-    command:
-      - --dir=/migrations
-      - up
-    volumes:
-      - ../migrations:/migrations:ro
-    networks:
-      - default
-    depends_on:
-      postgres:
-        condition: service_healthy
-
   postgres:
     image: postgres
     restart: always
@@ -70,8 +69,6 @@ services:
       POSTGRES_USER: ${CALENDAR_PG_USER}
       POSTGRES_PASSWORD: ${CALENDAR_PG_PASSWORD}
       POSTGRES_DB: ${CALENDAR_PG_DB_NAME}
-    ports:
-      - "${CALENDAR_PG_PORT}:5432"
     networks:
       - default
     healthcheck:
@@ -87,9 +84,6 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=${CALENDAR_RMQ_USER}
       - RABBITMQ_DEFAULT_PASS=${CALENDAR_RMQ_PASSWORD}
-    ports:
-      - "${CALENDAR_RMQ_PORT}:5672"
-      - "${CALENDAR_RMQ_UI_PORT}:15672"
     networks:
       - default
     healthcheck:
@@ -100,4 +94,4 @@ services:
 
 networks:
   default:
-    name: calendar_network
+    name: calendar_test_network

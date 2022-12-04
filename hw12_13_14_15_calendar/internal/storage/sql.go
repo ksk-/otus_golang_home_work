@@ -50,7 +50,7 @@ SET
 WHERE id = :id
 `
 	deleteEventQuery      = `DELETE FROM events WHERE id = $1`
-	deletePastEventsQuery = `DELETE FROM events WHERE end_time < $1 IS TRUE RETURNING id`
+	deletePastEventsQuery = `DELETE FROM events WHERE end_time < $1`
 )
 
 func NewSQLStorage(db *sqlx.DB, logger *logger.Logger) Storage {
@@ -77,7 +77,7 @@ func (s *sqlStorage) ListEvents(ctx context.Context, limit, offset uint64) ([]Ev
 func (s *sqlStorage) GetEvent(ctx context.Context, id uuid.UUID) (*Event, error) {
 	var event Event
 	if err := s.db.GetContext(ctx, &event, getEventQuery, id); err != nil {
-		return nil, fmt.Errorf("get event: %w", err)
+		return nil, fmt.Errorf("%w: %v", ErrEventNotFound, err)
 	}
 	return &event, nil
 }
@@ -106,16 +106,36 @@ func (s *sqlStorage) InsertEvent(ctx context.Context, event *Event) error {
 }
 
 func (s *sqlStorage) UpdateEvent(ctx context.Context, event *Event) error {
-	if _, err := s.db.NamedExecContext(ctx, updateEventQuery, event); err != nil {
-		return fmt.Errorf("update event: %w", err)
+	r, err := s.db.NamedExecContext(ctx, updateEventQuery, event)
+	if err != nil {
+		return fmt.Errorf("exec query: %w", err)
 	}
+
+	updated, err := r.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+	if updated == 0 {
+		return ErrEventNotFound
+	}
+
 	return nil
 }
 
 func (s *sqlStorage) DeleteEvent(ctx context.Context, id uuid.UUID) error {
-	if _, err := s.db.ExecContext(ctx, deleteEventQuery, id); err != nil {
-		return fmt.Errorf("delete event: %w", err)
+	r, err := s.db.ExecContext(ctx, deleteEventQuery, id)
+	if err != nil {
+		return fmt.Errorf("exec query: %w", err)
 	}
+
+	deleted, err := r.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+	if deleted == 0 {
+		return ErrEventNotFound
+	}
+
 	return nil
 }
 

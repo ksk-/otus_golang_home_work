@@ -84,4 +84,15 @@ clean:
 	rm -rf ./pkg/calendarpb
 	rm -rf ./third_party/OpenAPI
 
-.PHONY: build run build-img run-img version test lint migrate generate clean
+up:
+	docker compose -f deployments/docker-compose.yaml up --build -d
+
+down:
+	docker compose -f deployments/docker-compose.yaml down
+
+integration-tests:
+	docker compose -f deployments/docker-compose.testing.yaml up --build --attach calendar_test --exit-code-from calendar_test
+	docker compose -f deployments/docker-compose.testing.yaml down
+
+
+.PHONY: build run build-img run-img version test lint migrate generate clean up down integration-tests

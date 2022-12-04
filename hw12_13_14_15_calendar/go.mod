@@ -7,6 +7,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.14.0
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jmoiron/sqlx v1.3.5
+	github.com/pressly/goose v2.7.0+incompatible
 	github.com/rabbitmq/amqp091-go v1.5.0
 	github.com/rs/zerolog v1.28.0
 	github.com/stretchr/testify v1.8.1

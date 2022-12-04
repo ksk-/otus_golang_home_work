@@ -42,7 +42,7 @@ func (a *api) UpdateEventV1(ctx context.Context, req *pb.UpdateEventV1Request) (
 }
 
 func (a *api) DeleteEventV1(ctx context.Context, req *pb.DeleteEventV1Request) (*pb.DeleteEventV1Response, error) {
-	eventID, err := mapper.EventID(req)
+	eventID, err := mapper.EventID(req.EventId)
 	if err != nil {
 		return nil, fmt.Errorf("invalid request: %w", err)
 	}
@@ -50,6 +50,18 @@ func (a *api) DeleteEventV1(ctx context.Context, req *pb.DeleteEventV1Request) (
 		return nil, fmt.Errorf("delete event: %w", err)
 	}
 	return &pb.DeleteEventV1Response{}, nil
+}
+
+func (a *api) GetEvent(ctx context.Context, req *pb.GetEventV1Request) (*pb.GetEventV1Response, error) {
+	eventID, err := mapper.EventID(req.EventId)
+	if err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
+	}
+	event, err := a.app.GetEvent(ctx, eventID)
+	if err != nil {
+		return nil, fmt.Errorf("get event: %w", err)
+	}
+	return mapper.GetEventV1Response(event), nil
 }
 
 func (a *api) GetEventsOfDayV1(ctx context.Context, req *pb.GetEventsV1Request) (*pb.GetEventsV1Response, error) {

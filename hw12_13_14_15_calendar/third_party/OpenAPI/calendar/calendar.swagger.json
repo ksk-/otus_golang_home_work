@@ -207,6 +207,30 @@
       }
     },
     "/api/v1/events/{eventId}": {
+      "get": {
+        "summary": "Get event",
+        "operationId": "CalendarApi_GetEvent",
+        "responses": {
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "eventId",
+            "description": "Event ID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "CalendarApi"
+        ]
+      },
       "delete": {
         "summary": "Delete event",
         "operationId": "CalendarApi_DeleteEventV1",
@@ -325,6 +349,16 @@
         }
       },
       "title": "Event"
+    },
+    "calendarGetEventV1Response": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "$ref": "#/definitions/calendarEvent",
+          "title": "Requested event"
+        }
+      },
+      "title": "Get event response"
     },
     "calendarGetEventsV1Response": {
       "type": "object",

@@ -1,0 +1,9 @@
+FROM golang:1.18.8
+
+COPY . /integration_tests
+WORKDIR /integration_tests
+
+ENV CGO_ENABLED=0
+RUN go mod tidy
+
+ENTRYPOINT [ "go", "test", "-v", "./integration_tests/...", "-tags=integration"]

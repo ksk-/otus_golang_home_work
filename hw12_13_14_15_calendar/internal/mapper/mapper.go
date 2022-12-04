@@ -62,8 +62,8 @@ func Event(req *pb.UpdateEventV1Request) (*storage.Event, error) {
 	}, nil
 }
 
-func EventID(req *pb.DeleteEventV1Request) (uuid.UUID, error) {
-	eventID, err := uuid.Parse(req.EventId)
+func EventID(str string) (uuid.UUID, error) {
+	eventID, err := uuid.Parse(str)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("invalid eventID: %w", err)
 	}
@@ -72,6 +72,20 @@ func EventID(req *pb.DeleteEventV1Request) (uuid.UUID, error) {
 
 func BeginOfDay(req *pb.GetEventsV1Request) time.Time {
 	return req.Since.AsTime().Truncate(24 * time.Hour)
+}
+
+func GetEventV1Response(event *storage.Event) *pb.GetEventV1Response {
+	return &pb.GetEventV1Response{
+		Event: &pb.Event{
+			Id:          event.ID.String(),
+			Title:       event.Title,
+			BeginTime:   timestamppb.New(event.BeginTime),
+			EndTime:     timestamppb.New(event.EndTime),
+			Description: event.Description,
+			UserId:      event.UserID.String(),
+			NotifyIn:    durationpb.New(event.BeginTime.Sub(event.NotificationTime)),
+		},
+	}
 }
 
 func GetEventsV1Response(events []storage.Event) *pb.GetEventsV1Response {
