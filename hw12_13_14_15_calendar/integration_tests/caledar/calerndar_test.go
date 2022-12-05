@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"os"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -274,6 +275,10 @@ func (s *calendarTestSuite) TestSendNotifications() {
 	wg.Wait()
 
 	s.Equal(len(events), len(notifications))
+	sort.Strings(events)
+	sort.Slice(notifications, func(i, j int) bool {
+		return notifications[i].EventID.String() < notifications[j].EventID.String()
+	})
 	for i := 0; i < len(events); i++ {
 		s.Equal(events[i], notifications[i].EventID.String())
 	}
