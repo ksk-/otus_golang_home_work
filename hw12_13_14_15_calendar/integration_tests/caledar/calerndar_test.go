@@ -268,7 +268,10 @@ func (s *calendarTestSuite) TestSendNotifications() {
 		for msg := range ch {
 			var notification notify.Notification
 			s.NoError(json.Unmarshal(msg, &notification))
-			notifications = append(notifications, notification)
+
+			if contains(events, notification.EventID.String()) {
+				notifications = append(notifications, notification)
+			}
 		}
 	}()
 	<-ctx.Done()
@@ -312,4 +315,13 @@ func (s *calendarTestSuite) addTestEvents(since time.Time, d time.Duration, coun
 	}
 
 	return added
+}
+
+func contains[T comparable](collection []T, value T) bool {
+	for _, v := range collection {
+		if value == v {
+			return true
+		}
+	}
+	return false
 }
