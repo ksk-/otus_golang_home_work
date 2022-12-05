@@ -6,10 +6,13 @@ SLEEP_TIMEOUT_SEC = 5
 
 
 async def main():
-    args = ["/usr/local/bin/goose"] + sys.argv[1:]
+    args = ['/usr/local/bin/goose'] + sys.argv[1:]
     process = subprocess.Popen(args, stdout=subprocess.PIPE)
     for line in process.communicate():
         print(line)
+
+    with open('ready', 'w') as f:
+        pass
 
     while True:
         await asyncio.sleep(SLEEP_TIMEOUT_SEC)
