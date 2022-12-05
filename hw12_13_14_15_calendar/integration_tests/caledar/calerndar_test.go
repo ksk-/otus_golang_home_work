@@ -249,8 +249,8 @@ func (s *calendarTestSuite) TestSendNotifications() {
 	s.NoError(err)
 
 	count := 5
-	since := time.Now().Add(3 * time.Second)
-	events := s.addTestEvents(since, time.Second, count)
+	since := time.Now().Add(time.Second)
+	events := s.addTestEvents(since, 500*time.Millisecond, count)
 	notifications := make([]notify.Notification, 0, count)
 
 	var wg sync.WaitGroup

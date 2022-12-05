@@ -19,4 +19,4 @@ rmq:
   password: password123
   queue: "event_notifications"
 
-tick: 5s
+tick: 100ms

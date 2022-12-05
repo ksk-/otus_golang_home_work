@@ -59,8 +59,11 @@ func main() {
 	defer cancel()
 
 	l.Info("scheduler is running...")
-	scheduler := schedule.NewScheduler(cfg, s, notifier)
-	scheduler.LoadSchedule(ctx)
+	scheduler := schedule.NewScheduler(s, notifier)
+
+	from := time.Now()
+	to := from.Add(cfg.Tick)
+	scheduler.CheckCalendar(ctx, from, to)
 
 	ticker := time.NewTicker(cfg.Tick)
 	defer ticker.Stop()
@@ -71,7 +74,8 @@ loop:
 		case <-ctx.Done():
 			break loop
 		case <-ticker.C:
-			scheduler.LoadSchedule(ctx)
+			from, to = from.Add(cfg.Tick), to.Add(cfg.Tick)
+			scheduler.CheckCalendar(ctx, from, to)
 		}
 	}
 	<-ctx.Done()
