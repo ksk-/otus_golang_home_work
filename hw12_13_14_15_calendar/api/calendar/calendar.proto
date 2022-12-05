@@ -69,7 +69,7 @@ service CalendarApi
   }
 
   // Get event
-  rpc GetEvent(GetEventV1Request) returns (GetEventV1Response) {
+  rpc GetEventV1(GetEventV1Request) returns (GetEventV1Response) {
     option (google.api.http) = {
       get: "/api/v1/events/{event_id}"
     };

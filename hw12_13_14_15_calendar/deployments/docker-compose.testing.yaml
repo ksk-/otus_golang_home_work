@@ -32,7 +32,7 @@ services:
       - default
     depends_on:
       migrator:
-        condition: service_completed_successfully
+        condition: service_started
 
   scheduler:
     restart: on-failure
@@ -46,7 +46,7 @@ services:
       - default
     depends_on:
       migrator:
-        condition: service_completed_successfully
+        condition: service_started
       rmq:
         condition: service_healthy
 
@@ -65,10 +65,10 @@ services:
         condition: service_healthy
 
   migrator:
-    container_name: goose
+    container_name: migrator
     build:
       context: ..
-      dockerfile: build/Dockerfile.goose
+      dockerfile: build/Dockerfile.migrator.testing
     environment:
       GOOSE_DRIVER: postgres
       GOOSE_DBSTRING: postgres://${CALENDAR_PG_USER}:${CALENDAR_PG_PASSWORD}@postgres:5432/${CALENDAR_PG_DB_NAME}

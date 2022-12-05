@@ -88,7 +88,7 @@ func (s *calendarTestSuite) TestCreateEvent() {
 		eventID, err := uuid.Parse(res.EventId)
 		s.NoError(err)
 
-		created, err := s.client.GetEvent(ctx, &pb.GetEventV1Request{EventId: eventID.String()})
+		created, err := s.client.GetEventV1(ctx, &pb.GetEventV1Request{EventId: eventID.String()})
 		s.NoError(err)
 		s.NotNil(created.Event)
 		s.Equal(res.EventId, created.Event.Id)
@@ -134,7 +134,7 @@ func (s *calendarTestSuite) TestUpdateEvent() {
 		})
 		s.NoError(err)
 
-		updated, err := s.client.GetEvent(ctx, &pb.GetEventV1Request{EventId: eventID})
+		updated, err := s.client.GetEventV1(ctx, &pb.GetEventV1Request{EventId: eventID})
 		s.NoError(err)
 		s.NotNil(updated.Event)
 		s.Equal("changed_event", updated.Event.Title)
@@ -167,7 +167,7 @@ func (s *calendarTestSuite) TestDeleteEvent() {
 		_, err := s.client.DeleteEventV1(ctx, &pb.DeleteEventV1Request{EventId: eventID})
 		s.NoError(err)
 
-		_, err = s.client.GetEvent(ctx, &pb.GetEventV1Request{EventId: eventID})
+		_, err = s.client.GetEventV1(ctx, &pb.GetEventV1Request{EventId: eventID})
 		s.ErrorContains(err, "event not found")
 	})
 	s.Run("non existent event", func() {

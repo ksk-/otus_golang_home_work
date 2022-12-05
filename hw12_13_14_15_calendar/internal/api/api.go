@@ -52,7 +52,7 @@ func (a *api) DeleteEventV1(ctx context.Context, req *pb.DeleteEventV1Request) (
 	return &pb.DeleteEventV1Response{}, nil
 }
 
-func (a *api) GetEvent(ctx context.Context, req *pb.GetEventV1Request) (*pb.GetEventV1Response, error) {
+func (a *api) GetEventV1(ctx context.Context, req *pb.GetEventV1Request) (*pb.GetEventV1Response, error) {
 	eventID, err := mapper.EventID(req.EventId)
 	if err != nil {
 		return nil, fmt.Errorf("invalid request: %w", err)

@@ -209,7 +209,7 @@
     "/api/v1/events/{eventId}": {
       "get": {
         "summary": "Get event",
-        "operationId": "CalendarApi_GetEvent",
+        "operationId": "CalendarApi_GetEventV1",
         "responses": {
           "default": {
             "description": "An unexpected error response.",
