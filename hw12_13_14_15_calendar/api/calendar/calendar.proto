@@ -68,6 +68,13 @@ service CalendarApi
     };
   }
 
+  // Get event
+  rpc GetEventV1(GetEventV1Request) returns (GetEventV1Response) {
+    option (google.api.http) = {
+      get: "/api/v1/events/{event_id}"
+    };
+  }
+
   // Get event for the specified date
   rpc GetEventsOfDayV1(GetEventsV1Request) returns (GetEventsV1Response) {
     option (google.api.http) = {
@@ -158,6 +165,18 @@ message DeleteEventV1Request {
 
 // Delete event response
 message DeleteEventV1Response {}
+
+// Get event request
+message GetEventV1Request {
+  // Event ID
+  string event_id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { format: "uuid" }];
+}
+
+// Get event response
+message GetEventV1Response {
+  // Requested event
+  Event event = 1;
+}
 
 // Get events request
 message GetEventsV1Request {

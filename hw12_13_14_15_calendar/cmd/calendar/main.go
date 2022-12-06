@@ -21,7 +21,7 @@ import (
 var configFile string
 
 func init() {
-	flag.StringVar(&configFile, "config", "/etc/calendar/config.yaml", "Path to configuration file")
+	flag.StringVar(&configFile, "config", "/etc/calendar/calendar.yaml", "Path to configuration file")
 }
 
 func main() {
@@ -39,7 +39,7 @@ func main() {
 	}
 
 	l := logger.New(&cfg.Logger).WithGlobal()
-	s, err := storage.NewStorage(cfg.Storage, l)
+	s, err := storage.NewStorage(&cfg.Storage, l)
 	if err != nil {
 		l.Error(fmt.Sprintf("faield to create storage: %v", err))
 		os.Exit(1)

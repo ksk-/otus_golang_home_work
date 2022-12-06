@@ -33,7 +33,7 @@ func main() {
 	}
 
 	l := logger.New(&cfg.Logger).WithGlobal()
-	s, err := storage.NewStorage(cfg.Storage, l)
+	s, err := storage.NewStorage(&cfg.Storage, l)
 	if err != nil {
 		l.Error(fmt.Sprintf("faield to create storage: %v", err))
 		os.Exit(1)
@@ -44,7 +44,7 @@ func main() {
 		}
 	}()
 
-	notifier, err := rmq.NewNotifier(&cfg.RMQ)
+	notifier, err := rmq.NewNotifier(cfg.RMQ.URI(), cfg.RMQ.Queue)
 	if err != nil {
 		l.Error(fmt.Sprintf("failed to creqte RMQ notifier: %v", err))
 		os.Exit(1) //nolint:gocritic
@@ -59,8 +59,11 @@ func main() {
 	defer cancel()
 
 	l.Info("scheduler is running...")
-	scheduler := schedule.NewScheduler(cfg, s, notifier)
-	scheduler.LoadSchedule(ctx)
+	scheduler := schedule.NewScheduler(s, notifier)
+
+	from := time.Now()
+	to := from.Add(cfg.Tick)
+	scheduler.CheckCalendar(ctx, from, to)
 
 	ticker := time.NewTicker(cfg.Tick)
 	defer ticker.Stop()
@@ -71,7 +74,8 @@ loop:
 		case <-ctx.Done():
 			break loop
 		case <-ticker.C:
-			scheduler.LoadSchedule(ctx)
+			from, to = from.Add(cfg.Tick), to.Add(cfg.Tick)
+			scheduler.CheckCalendar(ctx, from, to)
 		}
 	}
 	<-ctx.Done()

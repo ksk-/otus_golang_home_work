@@ -5,18 +5,18 @@ logger:
 storage:
   type: sql
   db:
-    host: localhost
-    port: 6543
-    database: test
-    user: postgres
+    host: postgres
+    port: 5432
+    database: calendar
+    user: user
     password: password123
 
 rmq:
   scheme: amqp
-  host: localhost
+  host: rmq
   port: 5672
   user: user
   password: password123
   queue: "event_notifications"
 
-tick: 5s
+tick: 100ms

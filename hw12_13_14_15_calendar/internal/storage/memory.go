@@ -36,8 +36,8 @@ func (m *memoryStorage) ListEvents(_ context.Context, limit, offset uint64) ([]E
 	sort.Slice(events, func(i, j int) bool {
 		return events[i].BeginTime.Before(events[j].BeginTime)
 	})
-
-	return events[offset:min(offset+limit, uint64(len(events)))], nil
+	size := uint64(len(events))
+	return events[min(offset, size):min(offset+limit, size)], nil
 }
 
 func (m *memoryStorage) GetEvent(_ context.Context, id uuid.UUID) (*Event, error) {

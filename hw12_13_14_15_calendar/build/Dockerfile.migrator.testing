@@ -1,0 +1,9 @@
+FROM python:3.10-alpine
+
+COPY ./scripts/apply_migrations_and_sleep.py /app/apply_migrations_and_sleep.py
+WORKDIR /app
+
+RUN apk add curl
+RUN curl -fsSL https://raw.githubusercontent.com/pressly/goose/master/install.sh | sh
+
+ENTRYPOINT [ "python", "apply_migrations_and_sleep.py" ]

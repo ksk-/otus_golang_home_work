@@ -46,7 +46,7 @@ type Storage interface {
 	DeletePastEvents(ctx context.Context, before time.Time) (int64, error)
 }
 
-func NewStorage(cfg config.Storage, logger *logger.Logger) (Storage, error) {
+func NewStorage(cfg *config.Storage, logger *logger.Logger) (Storage, error) {
 	switch cfg.Type {
 	case "memory":
 		return NewMemoryStorage(), nil

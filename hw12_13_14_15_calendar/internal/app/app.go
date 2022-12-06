@@ -63,6 +63,14 @@ func (a *App) DeleteEvent(ctx context.Context, eventID uuid.UUID) error {
 	return nil
 }
 
+func (a *App) GetEvent(ctx context.Context, eventID uuid.UUID) (*storage.Event, error) {
+	event, err := a.storage.GetEvent(ctx, eventID)
+	if err != nil {
+		return nil, fmt.Errorf("get event from storage: %w", err)
+	}
+	return event, nil
+}
+
 func (a *App) GetEventsOfDay(ctx context.Context, since time.Time) ([]storage.Event, error) {
 	return a.storage.GetEventsForPeriod(ctx, since, since.AddDate(0, 0, 1))
 }

@@ -5,10 +5,10 @@ logger:
 storage:
   type: sql
   db:
-    host: localhost
-    port: 6543
-    database: test
-    user: postgres
+    host: postgres
+    port: 5432
+    database: calendar
+    user: user
     password: password123
 
 http:
